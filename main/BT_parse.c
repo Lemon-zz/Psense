@@ -86,6 +86,13 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             break;
         
         case session_info:
+            ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Session info",18);
+            
+            tx_packet.ID = 0x12;
+            tx_packet.length = 0x04;
+            unsigned char buf_SnS = tx_packet.ID  << 8 | tx_packet.length;
+            tx_packet.crc16 = crc16Calc(&buf_SnS, 2);
+            send_to_bt(&tx_packet, handle);
             break;
         
         case calibration:
