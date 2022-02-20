@@ -1,4 +1,6 @@
-
+#include <stdint.h>
+#include "esp_log.h"
+#include <string.h>
 
 struct session{
     uint8_t position; //finger
@@ -29,7 +31,7 @@ struct calibration_data_sensibility{
     uint8_t channel_1_sens_low;
     uint8_t channel_1_sens_high;
 
-    uint8_t channel_1_sens_low;
+    uint8_t channel_2_sens_low;
     uint8_t channel_2_sens_high;
 
     uint8_t channel_3_sens_low;
@@ -42,4 +44,4 @@ struct calibration_data_sensibility{
     uint8_t channel_5_sens_high;
 };
 
-void get_session_from_packet();
+void get_session_data(uint8_t *data, uint8_t len);

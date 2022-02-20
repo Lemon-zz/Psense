@@ -1,5 +1,5 @@
 #include "BT_parse.h"
-
+#include "Session_control.h"
 
 
 
@@ -87,11 +87,11 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
         
         case session_info:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Session info",18);
-            
-            tx_packet.ID = 0x12;
+            get_session_data(rx_packet->payload, rx_packet->length-4);
+            tx_packet.ID = 0x11;
             tx_packet.length = 0x04;
-            unsigned char buf_SnS = tx_packet.ID  << 8 | tx_packet.length;
-            tx_packet.crc16 = crc16Calc(&buf_SnS, 2);
+            unsigned char buf_SSI = tx_packet.ID  << 8 | tx_packet.length;
+            tx_packet.crc16 = crc16Calc(&buf_SSI, 2);
             send_to_bt(&tx_packet, handle);
             break;
         
