@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/CMakeFiles/bootloader
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/CMakeFiles/bootloader.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/CMakeFiles/bootloader-complete.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+C:/Users/pavlo/WorkCloud/OneDrive - newnewlogin0/Code/BT test/Psense/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
