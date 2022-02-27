@@ -18,6 +18,7 @@
 #include "sys/time.h"
 
 #include "BT_parse.h"
+#include "HW.h"
 
 #define SPP_TAG "Psense_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
@@ -223,4 +224,5 @@ void app_main(void)
     esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
+    HW_init();
 }

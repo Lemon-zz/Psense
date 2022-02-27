@@ -11,20 +11,20 @@ struct session{
 
 
 struct calibration_data_pwm{
-    uint8_t channel_1_pwm_low;
-    uint8_t channel_1_pwm_high;
+    uint8_t channel_1_pwm_min;
+    uint8_t channel_1_pwm_max;
 
-    uint8_t channel_2_pwm_low;
-    uint8_t channel_2_pwm_high;
+    uint8_t channel_2_pwm_min;
+    uint8_t channel_2_pwm_max;
 
-    uint8_t channel_3_pwm_low;
-    uint8_t channel_3_pwm_high;
+    uint8_t channel_3_pwm_min;
+    uint8_t channel_3_pwm_max;
 
-    uint8_t channel_4_pwm_low;
-    uint8_t channel_4_pwm_high;
+    uint8_t channel_4_pwm_min;
+    uint8_t channel_4_pwm_max;
 
-    uint8_t channel_5_pwm_low;
-    uint8_t channel_5_pwm_high;
+    uint8_t channel_5_pwm_min;
+    uint8_t channel_5_pwm_max;
 };
 
 struct calibration_data_sensibility{
@@ -45,3 +45,5 @@ struct calibration_data_sensibility{
 };
 
 void get_session_data(uint8_t *data, uint8_t len);
+void stop_session();
+void pause_session();

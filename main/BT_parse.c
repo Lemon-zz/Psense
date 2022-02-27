@@ -104,9 +104,11 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             break;
         
         case pause:
+            pause_session();
             break;
         
         case stop:
+            stop_session();
             break;
         
         case ACK:
@@ -114,7 +116,13 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             break;
         
         case action_ack:
-            send_ACK(handle);
+            tx_packet.ID = 0x11;
+            tx_packet.length = 0x04;
+            uint8_t buf_AA[1];
+            buf_AA[0] = tx_packet.ID;
+            buf_AA[1] = tx_packet.length;
+            tx_packet.crc16 = crc16Calc(buf_AA, 2);
+            send_to_bt(&tx_packet, handle);
             break;
         
         case state_info:
@@ -145,7 +153,6 @@ void send_to_bt(struct bt_packet *tx_packet, uint32_t handle){
     esp_log_buffer_hex("", &tx_packet->length, 1);
     ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet crc:",12);
     esp_log_buffer_hex("", &tx_packet->crc16, 2);
-    esp_log_buffer_hex("", ((uint8_t*) &tx_packet), 4);
     
     if(tx_packet->length == 4){ //to do: 
     uint8_t packet[3];
