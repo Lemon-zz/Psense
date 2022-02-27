@@ -6,7 +6,7 @@
 
 
 void parse_data_from_bt(uint8_t *data, uint16_t len, uint32_t handle){
-    esp_log_buffer_hex("",data, len);
+    //esp_log_buffer_hex("",data, len);
     
     struct bt_packet rx_packet;
 
@@ -26,7 +26,7 @@ void parse_data_from_bt(uint8_t *data, uint16_t len, uint32_t handle){
     rx_packet.length = data[1];
     ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet Length:",14);
     esp_log_buffer_hex("", &rx_packet.length, 1);
-
+    
     if(len > 4){
         uint8_t payload_size = len - 4;
         rx_packet.payload = malloc(sizeof(uint8_t)*payload_size);
@@ -58,11 +58,8 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
 
         case get_state:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Get State",14);
-            tx_packet.ID = ACK;
-            tx_packet.length = 0x04;
-            unsigned char buf = tx_packet.ID  << 8 | tx_packet.length;
-            tx_packet.crc16 = crc16Calc(&buf, 2);
-            send_to_bt(&tx_packet, handle);
+
+            send_ACK(handle);
             break;
         
 
@@ -70,9 +67,13 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Get State Info",18);
             tx_packet.ID = 0x12;
             tx_packet.length = 0x04;
-            unsigned char buf_GSI = tx_packet.ID  << 8 | tx_packet.length;
-            tx_packet.crc16 = crc16Calc(&buf_GSI, 2);
+
+            uint8_t buf_GSI[1];
+            buf_GSI[0] = tx_packet.ID;
+            buf_GSI[1] = tx_packet.length;
+            tx_packet.crc16 = crc16Calc(buf_GSI, 2);
             send_to_bt(&tx_packet, handle);
+
             break;
         
         case next_step:
@@ -80,8 +81,10 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
 
             tx_packet.ID = 0x12;
             tx_packet.length = 0x04;
-            unsigned char buf_SnS = tx_packet.ID  << 8 | tx_packet.length;
-            tx_packet.crc16 = crc16Calc(&buf_SnS, 2);
+            uint8_t buf_SnS[1];
+            buf_SnS[0] = tx_packet.ID;
+            buf_SnS[1] = tx_packet.length;
+            tx_packet.crc16 = crc16Calc(buf_SnS, 2);
             send_to_bt(&tx_packet, handle);
             break;
         
@@ -90,8 +93,10 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             get_session_data(rx_packet->payload, rx_packet->length-4);
             tx_packet.ID = 0x11;
             tx_packet.length = 0x04;
-            unsigned char buf_SSI = tx_packet.ID  << 8 | tx_packet.length;
-            tx_packet.crc16 = crc16Calc(&buf_SSI, 2);
+            uint8_t buf_SI[1];
+            buf_SI[0] = tx_packet.ID;
+            buf_SI[1] = tx_packet.length;
+            tx_packet.crc16 = crc16Calc(buf_SI, 2);
             send_to_bt(&tx_packet, handle);
             break;
         
@@ -105,9 +110,11 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             break;
         
         case ACK:
+            send_ACK(handle);
             break;
         
         case action_ack:
+            send_ACK(handle);
             break;
         
         case state_info:
@@ -119,6 +126,34 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
 }
 
 
+void send_ACK(uint32_t handle){
+            struct bt_packet tx_packet;
+            tx_packet.ID = ACK;
+            tx_packet.length = 0x04;
+            uint8_t buf[1];
+            buf[0] = tx_packet.ID;
+            buf[1] = tx_packet.length;
+            tx_packet.crc16 = crc16Calc(buf, 2);
+            send_to_bt(&tx_packet, handle);
+}
+
 void send_to_bt(struct bt_packet *tx_packet, uint32_t handle){
-    esp_spp_write(handle, tx_packet->length, (uint8_t*) tx_packet);
+    ESP_LOG_BUFFER_CHAR(BT_TAG,"Send:",6);
+    ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet ID:",12);
+    esp_log_buffer_hex("", &tx_packet->ID, 1);
+    ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet length:",14);
+    esp_log_buffer_hex("", &tx_packet->length, 1);
+    ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet crc:",12);
+    esp_log_buffer_hex("", &tx_packet->crc16, 2);
+    esp_log_buffer_hex("", ((uint8_t*) &tx_packet), 4);
+    
+    if(tx_packet->length == 4){ //to do: 
+    uint8_t packet[3];
+    packet[0] = tx_packet->ID;
+    packet[1] = tx_packet->length;
+    packet[2] = tx_packet->crc16;
+    packet[3] = tx_packet->crc16>>8;
+    
+    esp_spp_write(handle, tx_packet->length, packet);
+    }
 }

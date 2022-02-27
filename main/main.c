@@ -19,7 +19,7 @@
 
 #include "BT_parse.h"
 
-#define SPP_TAG "SPP_ACCEPTOR_DEMO"
+#define SPP_TAG "Psense_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
 #define DEVICE_NAME "PSense"
 
@@ -61,9 +61,6 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         ESP_LOGI(SPP_TAG, "ESP_SPP_DATA_IND_EVT len=%d handle=%d",
                  param->data_ind.len, param->data_ind.handle);
         parse_data_from_bt(param->data_ind.data, param->data_ind.len, param->data_ind.handle);
-        //esp_log_buffer_hex("",param->data_ind.data,param->data_ind.len);
-        //uint8_t* str[6] = {0x4D,0x61,0x73,0x74,0x65,0x72};
-        //esp_spp_write(param->data_ind.handle, sizeof(str), str);
         break;
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");

@@ -32,3 +32,4 @@ struct __attribute__((packed, aligned(1))) bt_packet{
 void parse_data_from_bt(uint8_t *data, uint16_t len, uint32_t handle);
 void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle);
 void send_to_bt(struct bt_packet *tx_packet, uint32_t handle);
+void send_ACK(uint32_t handle);
