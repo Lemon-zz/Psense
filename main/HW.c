@@ -1,13 +1,15 @@
 #include "HW.h"   
 
 esp_err_t HW_init(){
-    
+
+
+
     ledc_timer_config_t ledc_timer = {
         .speed_mode       = LEDC_HIGH_SPEED_MODE,
         .timer_num        = LEDC_TIMER,
         .duty_resolution  = LEDC_DUTY_RES,
         .freq_hz          = LEDC_FREQUENCY,  
-        .clk_cfg          = LEDC_AUTO_CLK
+        .clk_cfg          = LEDC_APB_CLK
     };
     ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
@@ -16,7 +18,7 @@ esp_err_t HW_init(){
         .timer_num        = LOW_LEDC_TIMER,
         .duty_resolution  = LEDC_DUTY_RES,
         .freq_hz          = LEDC_FREQUENCY,  
-        .clk_cfg          = LEDC_AUTO_CLK
+        .clk_cfg          = LEDC_APB_CLK
     };
     ESP_ERROR_CHECK(ledc_timer_config(&low_ledc_timer));
 
@@ -28,7 +30,7 @@ esp_err_t HW_init(){
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M1_1_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m1_1_channel));
@@ -39,7 +41,7 @@ esp_err_t HW_init(){
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M1_2_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m1_2_channel));
@@ -51,7 +53,7 @@ esp_err_t HW_init(){
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M2_1_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m2_1_channel));
@@ -62,7 +64,7 @@ esp_err_t HW_init(){
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M2_2_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m2_2_channel));
@@ -74,7 +76,7 @@ esp_err_t HW_init(){
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M3_1_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m3_1_channel));
@@ -85,7 +87,7 @@ esp_err_t HW_init(){
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M3_2_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m3_2_channel));
@@ -97,7 +99,7 @@ esp_err_t HW_init(){
         .timer_sel      = LOW_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M4_1_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m4_1_channel));
@@ -108,7 +110,7 @@ esp_err_t HW_init(){
         .timer_sel      = LOW_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M4_2_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m4_2_channel));
@@ -120,7 +122,7 @@ esp_err_t HW_init(){
         .timer_sel      = LOW_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M5_1_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m5_1_channel));
@@ -131,7 +133,7 @@ esp_err_t HW_init(){
         .timer_sel      = LOW_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = M5_2_PIN,
-        .duty           = 50, 
+        .duty           = 127, 
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&m5_2_channel));
@@ -146,8 +148,14 @@ esp_err_t HW_init(){
     gpio_set_direction(EN_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(EN_PIN, 0);
 
-    uint32_t a =0;
-    return a;
+    
+    set_motors_en(1);
+    //set_m5_1_pwm(255);
+    //set_m5_2_pwm(0);
+
+    set_m5_1_pwm(0);
+    set_m5_2_pwm(2);
+    return 0;
 }
 
 void set_motors_en(uint8_t STATE){
@@ -217,17 +225,17 @@ void set_m5_2_pwm(uint8_t pwm){
 }
 
 void stop_pwm(){
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_1_IN_1,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_1_IN_2,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_2_IN_1,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_2_IN_2,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_3_IN_1,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_3_IN_2,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_4_IN_1,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_4_IN_2,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_1,50));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_1_IN_1,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_1_IN_2,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_2_IN_1,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_2_IN_2,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_3_IN_1,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE,MOTOR_3_IN_2,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_4_IN_1,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_4_IN_2,127));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_1,127));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_2,50));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_2,127));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2));
 
 }

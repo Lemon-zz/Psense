@@ -33,14 +33,11 @@ static const esp_spp_role_t role_slave = ESP_SPP_ROLE_SLAVE;
 uint8_t  *incoming_data;
 uint16_t *data_length;
 uint32_t handle;
+TaskHandle_t xHandle = NULL;
 
 void parse_exec_session(void *pvParameter)
 
 {   
-    ESP_LOG_BUFFER_CHAR(SPP_TAG,"parse task",11);
-
-    ESP_LOG_BUFFER_CHAR(SPP_TAG,"handle",11);
-    esp_log_buffer_hex("",&handle, sizeof(handle));
     parse_data_from_bt(incoming_data, data_length, handle);
     vTaskDelete(NULL);
 }
@@ -77,7 +74,10 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         data_length = calloc(param->data_ind.len, sizeof(param->data_ind.len));
         memcpy(data_length, &param->data_ind.len, sizeof(param->data_ind.len));
         handle = param->data_ind.handle;
-        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, NULL);
+        if(xHandle != NULL){
+            vTaskDelete(xHandle);
+        }
+        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, xHandle);
         break;
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");
@@ -244,8 +244,6 @@ void app_main(void)
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
     HW_init();
 
-    TaskHandle_t xHandle = NULL;
     
-    //configASSERT( xHandle );
 
 }

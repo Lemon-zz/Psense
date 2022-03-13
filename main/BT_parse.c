@@ -107,44 +107,40 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             incoming_session.delay_time     = calloc(total_cycles_num, sizeof(uint8_t));
             incoming_session.act_time       = calloc(total_cycles_num, sizeof(uint8_t));
             incoming_session.idle_time      = calloc(total_cycles_num, sizeof(uint8_t));
-
+            
 
 
             for (uint8_t i = 0; i < total_block_num; i++)
-            {
-                
-            
+            {   
+                uint8_t position[total_cycles_num];
                 uint8_t current_block_position = rx_packet->payload[2+i]; 
-                uint8_t position[CYCLES_PER_BLOCK*total_block_num];
-               
                num2permutation(CYCLES_PER_BLOCK, rx_packet->payload[total_block_num+2+i], position);
-               
                for (uint8_t j=0; j < CYCLES_PER_BLOCK; j++)
-               {
+               {    
                    incoming_session.position[i*CYCLES_PER_BLOCK+j]     = position[j];
                    incoming_session.delay_time[i*CYCLES_PER_BLOCK+j]   = rx_packet->payload[2 + (2 * total_block_num) + ((i % unique_block_num)*3)] == 0x03 ? 3:0;
                    incoming_session.act_time[i*CYCLES_PER_BLOCK+j]     = rx_packet->payload[2 + (2 * total_block_num) + ((i % unique_block_num) * 3) + 1 ];
                    incoming_session.idle_time[i*CYCLES_PER_BLOCK+j]    = rx_packet->payload[2 + (2 * total_block_num) + ((i % unique_block_num) * 3) + 2 ];
                }
             }
-             
 
-
-
-            for(uint8_t i =0; i<= total_block_num; i++){
+                for(uint8_t j =0; j<= total_cycles_num; j++){
                 struct session next_block;
-                next_block.position       = &incoming_session.position[i];
-                next_block.delay_time     = &incoming_session.delay_time[i];
-                next_block.act_time       = &incoming_session.act_time[i];
-                next_block.idle_time      = &incoming_session.idle_time[i];
+                
+                next_block.position       = &incoming_session.position[j];
+                next_block.delay_time     = &incoming_session.delay_time[j];
+                next_block.act_time       = &incoming_session.act_time[j];
+                next_block.idle_time      = &incoming_session.idle_time[j];
                 uint8_t pwm = 100;
                 next_block.pwm            = &pwm;
                 send_session_ack(&next_block.position[0], handle);
                 block_exec(&next_block);
                 ESP_LOG_BUFFER_CHAR(BT_TAG,"Next Session",18);
                 //send_ACK(handle);
-
             }
+            
+            
+
 
             
             break;
