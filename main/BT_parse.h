@@ -52,3 +52,4 @@ void send_ACK(uint32_t handle);
 void num2permutation(uint8_t CYCLES_PER_BLOCK, uint8_t data, uint8_t *return_Arr);
 uint8_t fact(uint8_t num);
 void block_exec(struct session *incoming_session);
+void send_session_ack(uint8_t *position, uint32_t handle);
