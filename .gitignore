@@ -1,3 +1,5 @@
 *
 */
 !.gitignore
+build/.bin_timestamp
+build/compile_commands.json
