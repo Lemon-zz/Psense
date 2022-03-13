@@ -12,6 +12,7 @@
     "regex": "c",
     "array": "c",
     "string_view": "c",
-    "*.ipp": "c"
+    "*.ipp": "c",
+    "cstddef": "c"
   }
 }

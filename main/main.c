@@ -18,7 +18,7 @@
 #include "sys/time.h"
 
 #include "BT_parse.h"
-#include "HW.h"
+
 
 #define SPP_TAG "Psense_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
@@ -30,8 +30,20 @@ static const esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;
 static const esp_spp_sec_t sec_mask = ESP_SPP_SEC_AUTHENTICATE;
 static const esp_spp_role_t role_slave = ESP_SPP_ROLE_SLAVE;
 
+uint8_t  *incoming_data;
+uint16_t *data_length;
+uint32_t handle;
 
+void parse_exec_session(void *pvParameter)
 
+{   
+    ESP_LOG_BUFFER_CHAR(SPP_TAG,"parse task",11);
+
+    ESP_LOG_BUFFER_CHAR(SPP_TAG,"handle",11);
+    esp_log_buffer_hex("",&handle, sizeof(handle));
+    parse_data_from_bt(incoming_data, data_length, handle);
+    vTaskDelete(NULL);
+}
 
 
 static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
@@ -59,9 +71,13 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         ESP_LOGI(SPP_TAG, "ESP_SPP_CL_INIT_EVT");
         break;
     case ESP_SPP_DATA_IND_EVT:
-        ESP_LOGI(SPP_TAG, "ESP_SPP_DATA_IND_EVT len=%d handle=%d",
-                 param->data_ind.len, param->data_ind.handle);
-        parse_data_from_bt(param->data_ind.data, param->data_ind.len, param->data_ind.handle);
+        ESP_LOGI(SPP_TAG, "ESP_SPP_DATA_IND_EVT len=%d handle=%d", param->data_ind.len, param->data_ind.handle);
+        incoming_data = calloc(param->data_ind.len, sizeof(uint8_t));
+        memcpy(incoming_data, param->data_ind.data, param->data_ind.len);
+        data_length = calloc(param->data_ind.len, sizeof(param->data_ind.len));
+        memcpy(data_length, &param->data_ind.len, sizeof(param->data_ind.len));
+        handle = param->data_ind.handle;
+        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, NULL);
         break;
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");
@@ -145,6 +161,8 @@ void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
     return;
 }
 
+
+
 void app_main(void)
 {
     //store PHY calibration data and save key-value pairs in flash memory
@@ -225,4 +243,9 @@ void app_main(void)
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
     HW_init();
+
+    TaskHandle_t xHandle = NULL;
+    
+    //configASSERT( xHandle );
+
 }

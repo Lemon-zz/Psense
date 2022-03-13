@@ -5,6 +5,11 @@
 #include "crc16.h"
 #include <string.h>
 #include "esp_spp_api.h"
+#include "HW.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_system.h"
+
 
 //BT ID data
 static const uint8_t reserved       = 0x00; //
@@ -21,6 +26,7 @@ static const uint8_t state_info     = 0x12;
 
 
 static const char* BT_TAG = "BT_parse_module";
+static uint8_t  CYCLES_PER_BLOCK = 5;
 
 struct __attribute__((packed, aligned(1))) bt_packet{
     uint8_t ID;
@@ -29,7 +35,20 @@ struct __attribute__((packed, aligned(1))) bt_packet{
     unsigned short crc16;
 };
 
-void parse_data_from_bt(uint8_t *data, uint16_t len, uint32_t handle);
+struct session{
+        uint8_t *position;
+        uint8_t *act_time;
+        uint8_t *idle_time;
+        uint8_t *delay_time;
+        uint8_t *pwm;
+};
+
+
+
+void parse_data_from_bt(uint8_t *data, uint16_t *len, uint32_t handle);
 void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle);
 void send_to_bt(struct bt_packet *tx_packet, uint32_t handle);
 void send_ACK(uint32_t handle);
+void num2permutation(uint8_t CYCLES_PER_BLOCK, uint8_t data, uint8_t *return_Arr);
+uint8_t fact(uint8_t num);
+void block_exec(struct session *incoming_session);

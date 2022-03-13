@@ -144,7 +144,7 @@ esp_err_t HW_init(){
     gpio_set_level(LED_PIN, 1);
     gpio_pad_select_gpio(EN_PIN);
     gpio_set_direction(EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(EN_PIN, 1);
+    gpio_set_level(EN_PIN, 0);
 
     uint32_t a =0;
     return a;
@@ -167,42 +167,53 @@ void set_motors_en(uint8_t STATE){
 
 void set_m1_1_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_1, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_1));
 }
+
 
 void set_m1_2_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_2, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_2));
 }
 
 void set_m2_1_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_1, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_1));
 }
 
 void set_m2_2_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_2, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_2));
 }
 
 void set_m3_1_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_1, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_1));
 }
 
 void set_m3_2_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_2, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_2));
 }
 
 void set_m4_1_pwm(uint8_t pwm){
-    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_2, pwm));
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_1, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_4_IN_1));
 }
 
 void set_m4_2_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_2, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_4_IN_2));
 }
 
 void set_m5_1_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1));
 }
 
 void set_m5_2_pwm(uint8_t pwm){
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2, pwm));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2));
 }
 
 void stop_pwm(){
@@ -215,5 +226,8 @@ void stop_pwm(){
     ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_4_IN_1,50));
     ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_4_IN_2,50));
     ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_1,50));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_1,50));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1));
+    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_2,50));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2));
+
 }
