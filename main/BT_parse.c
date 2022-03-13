@@ -294,7 +294,7 @@ void block_exec(struct session *incoming_session){
         set_m2_1_pwm(0);
         set_m2_2_pwm(100);
         vTaskDelay(100 / portTICK_RATE_MS); //retract
-        vTaskDelay(((incoming_session->idle_time[0]) / portTICK_RATE_MS));
+        vTaskDelay(((incoming_session->idle_time[0] * 1000) / portTICK_RATE_MS));
     break;
     case 03:
     ESP_LOG_BUFFER_CHAR(BT_TAG,"case 3",6);
@@ -303,7 +303,7 @@ void block_exec(struct session *incoming_session){
         set_m3_1_pwm(0);
         set_m3_2_pwm(100);
         vTaskDelay(100 / portTICK_RATE_MS); //retract
-        vTaskDelay(((incoming_session->idle_time[0]) / portTICK_RATE_MS));
+        vTaskDelay(((incoming_session->idle_time[0] * 1000) / portTICK_RATE_MS));
     break;
     case 04:
     ESP_LOG_BUFFER_CHAR(BT_TAG,"case 4",6);
@@ -312,7 +312,7 @@ void block_exec(struct session *incoming_session){
         set_m4_1_pwm(0);
         set_m4_2_pwm(100);
         vTaskDelay(100 / portTICK_RATE_MS); //retract
-        vTaskDelay(((incoming_session->idle_time[0]) / portTICK_RATE_MS));
+        vTaskDelay(((incoming_session->idle_time[0] * 1000) / portTICK_RATE_MS));
     break;
     case 05:
     ESP_LOG_BUFFER_CHAR(BT_TAG,"case 5",6);
@@ -324,7 +324,7 @@ void block_exec(struct session *incoming_session){
         set_m5_2_pwm(100);
         vTaskDelay(100 / portTICK_RATE_MS); //retract
         set_motors_en(0);
-        vTaskDelay(((incoming_session->idle_time[0]) / portTICK_RATE_MS));
+        vTaskDelay(((incoming_session->idle_time[0] * 1000) / portTICK_RATE_MS));
     break;
         
     default:
