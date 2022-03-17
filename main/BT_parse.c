@@ -3,11 +3,9 @@
 
 
 void parse_data_from_bt(uint8_t *data, uint16_t *length, uint32_t handle){
-    uint16_t len = length[0];
-    esp_log_buffer_hex("",data, len);
-    
-    struct bt_packet rx_packet;
 
+    uint16_t len = length[0];
+    struct bt_packet rx_packet;
     unsigned short calcd_crc = crc16Calc(data, len-2);  
     
     rx_packet.crc16 = data[len-2]  << 8 | (data[len-1]);
@@ -17,17 +15,10 @@ void parse_data_from_bt(uint8_t *data, uint16_t *length, uint32_t handle){
         return;
     }
     
-    rx_packet.ID = data[0];
-    /*
-    ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet ID:",12);
-    esp_log_buffer_hex("", &rx_packet.ID, 1);
-    */
+    rx_packet.ID        = data[0];
+    rx_packet.length    = data[1];
 
-    rx_packet.length = data[1];
-    /*
-    ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet Length:",14);
-    esp_log_buffer_hex("", &rx_packet.length, 1);
-    */
+    
     if(len > 4){
         uint8_t payload_size = len - 4;
         rx_packet.payload = calloc(payload_size,sizeof(uint8_t));
@@ -35,15 +26,13 @@ void parse_data_from_bt(uint8_t *data, uint16_t *length, uint32_t handle){
             ESP_LOGE(BT_TAG, "Payload malloc error!");
             return;
         }
-        //memset(rx_packet.payload, 0, sizeof(uint8_t)*payload_size);
         uint8_t j = 0;
         for(uint8_t i=2; i<len-2; i++){
             rx_packet.payload[j] = data[i];
             j++;
         }
-
-        
     }
+
     send_ACK(handle);
     parse_bt_packet(&rx_packet, handle);
 }
@@ -53,53 +42,55 @@ void parse_data_from_bt(uint8_t *data, uint16_t *length, uint32_t handle){
 
 void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
     struct bt_packet tx_packet;
+    struct session incoming_session;
      switch(rx_packet->ID){
+
         case reserved:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Reserved",14);
             break;
 
-
         case get_state:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Get State",14);
-
             send_ACK(handle);
             break;
-        
 
         case get_state_info:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Get State Info",18);
             tx_packet.ID = 0x12;
             tx_packet.length = 0x04;
-
             uint8_t buf_GSI[1];
-            buf_GSI[0] = tx_packet.ID;
-            buf_GSI[1] = tx_packet.length;
+            buf_GSI[0]      = tx_packet.ID;
+            buf_GSI[1]      = tx_packet.length;
             tx_packet.crc16 = crc16Calc(buf_GSI, 2);
             send_to_bt(&tx_packet, handle);
-
             break;
         
         case next_step:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Set next Step",20);
             ESP_LOG_BUFFER_CHAR(BT_TAG,"Payload:",10);
             esp_log_buffer_hex("", rx_packet->payload, sizeof(rx_packet->payload));
-            //parse_test_session(rx_packet->payload);
-            send_ACK(handle);
+            
+            incoming_session.position       = &rx_packet->payload[0];
+            incoming_session.act_time       = &rx_packet->payload[1];
+            incoming_session.idle_time      = &rx_packet->payload[2];
+            incoming_session.pwm            = &rx_packet->payload[3];
+
+            block_exec(&incoming_session);
+            send_session_ack(&incoming_session.position[0], handle);
+
             break;
         
         case session_info:
             ESP_LOG_BUFFER_CHAR(BT_TAG,"ID: Session info",18);
-            struct session incoming_session;
+            
             uint8_t total_block_num         = rx_packet->payload[0];
+            uint8_t unique_block_num        = rx_packet->payload[1];
+            uint8_t total_cycles_num        = total_block_num * CYCLES_PER_BLOCK;
 
             ESP_LOG_BUFFER_CHAR(BT_TAG,"total_block_num",18);
             esp_log_buffer_hex("", &total_block_num, sizeof(total_block_num));
-
-            uint8_t unique_block_num        = rx_packet->payload[1];
             ESP_LOG_BUFFER_CHAR(BT_TAG,"unique_block_num",18);
             esp_log_buffer_hex("", &unique_block_num, sizeof(unique_block_num));
-
-            uint8_t total_cycles_num        = total_block_num * CYCLES_PER_BLOCK;
             ESP_LOG_BUFFER_CHAR(BT_TAG,"total_cycles_num",18);
             esp_log_buffer_hex("", &total_cycles_num, sizeof(total_cycles_num));
 
@@ -108,13 +99,12 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             incoming_session.act_time       = calloc(total_cycles_num, sizeof(uint8_t));
             incoming_session.idle_time      = calloc(total_cycles_num, sizeof(uint8_t));
             
-
-
             for (uint8_t i = 0; i < total_block_num; i++)
             {   
                 uint8_t position[total_cycles_num];
                 uint8_t current_block_position = rx_packet->payload[2+i]; 
-               num2permutation(CYCLES_PER_BLOCK, rx_packet->payload[total_block_num+2+i], position);
+                num2permutation(CYCLES_PER_BLOCK, rx_packet->payload[total_block_num+2+i], position);
+
                for (uint8_t j=0; j < CYCLES_PER_BLOCK; j++)
                {    
                    incoming_session.position[i*CYCLES_PER_BLOCK+j]     = position[j];
@@ -125,24 +115,18 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             }
 
                 for(uint8_t j =0; j<= total_cycles_num; j++){
-                struct session next_block;
-                
+                struct session next_block;        
                 next_block.position       = &incoming_session.position[j];
                 next_block.delay_time     = &incoming_session.delay_time[j];
                 next_block.act_time       = &incoming_session.act_time[j];
                 next_block.idle_time      = &incoming_session.idle_time[j];
-                uint8_t pwm = 100;
+                uint8_t pwm = 100;//***********************************************
                 next_block.pwm            = &pwm;
+
                 send_session_ack(&next_block.position[0], handle);
                 block_exec(&next_block);
                 ESP_LOG_BUFFER_CHAR(BT_TAG,"Next Session",18);
-                //send_ACK(handle);
             }
-            
-            
-
-
-            
             break;
         
         case calibration:
@@ -163,13 +147,6 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle){
             break;
         
         case action_ack:
-            tx_packet.ID = 0x11;
-            tx_packet.length = 0x04;
-            uint8_t buf_AA[1];
-            buf_AA[0] = tx_packet.ID;
-            buf_AA[1] = tx_packet.length;
-            tx_packet.crc16 = crc16Calc(buf_AA, 2);
-            send_to_bt(&tx_packet, handle);
             break;
         
         case state_info:
@@ -245,7 +222,6 @@ void num2permutation(uint8_t CYCLES_PER_BLOCK, uint8_t data, uint8_t *return_Arr
         bool *was;
         was = calloc(CYCLES_PER_BLOCK, sizeof(bool));
         
-
         for (uint8_t i = 1; i <= n; i++) {
             uint8_t alreadyWas = k / fact(n - i);
 
@@ -257,9 +233,7 @@ void num2permutation(uint8_t CYCLES_PER_BLOCK, uint8_t data, uint8_t *return_Arr
                     curFree++;
                     
                     if (curFree == alreadyWas + 1) {
-                        
                         return_Arr[i - 1] = j;
-                        
                         was[j] = true;
                     }
                 }

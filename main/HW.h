@@ -2,6 +2,10 @@
 #include "driver/ledc.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_system.h"
 /*
 #define m_en 14
 #define m1_1 19
@@ -45,13 +49,17 @@
 #define MOTOR_5_IN_2            LEDC_CHANNEL_1
 
 #define LEDC_DUTY_RES           LEDC_TIMER_8_BIT // Set duty resolution to 8 bits
-#define LEDC_DUTY               (0) // Set duty to 50%. ((2 ** 12) - 1) * 50% = 127
-#define LEDC_FREQUENCY          (12000) // Frequency in Hertz. 
+#define LEDC_DUTY               (127) // Set duty to 50%. ((2 ** 12) - 1) * 50% = 127
+#define LEDC_FREQUENCY          (20000) // Frequency in Hertz. 
 
 #define EN_PIN GPIO_NUM_14
 #define LED_PIN GPIO_NUM_13
 #define DRIVERS_ON 1
 #define DRIVERS_OFF 0
+
+static const char* HW_TAG = "HW_module";
+
+
 
 esp_err_t HW_init();
 void set_motors_en(uint8_t STATE);
@@ -63,6 +71,6 @@ void set_m3_1_pwm(uint8_t pwm);
 void set_m3_2_pwm(uint8_t pwm);
 void set_m4_1_pwm(uint8_t pwm);
 void set_m4_2_pwm(uint8_t pwm);
-void set_m5_1_pwm(uint8_t pwm);
-void set_m5_2_pwm(uint8_t pwm);
+void set_m5_1_pwm(uint32_t pwm);
+void set_m5_2_pwm(uint32_t pwm);
 void stop_pwm();
