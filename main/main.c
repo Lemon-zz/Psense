@@ -33,7 +33,7 @@ static const esp_spp_role_t role_slave = ESP_SPP_ROLE_SLAVE;
 uint8_t  *incoming_data;
 uint16_t *data_length;
 uint32_t handle;
-TaskHandle_t xHandle = NULL;
+TaskHandle_t parse_exec_xHandle = NULL;
 
 void parse_exec_session(void *pvParameter)
 
@@ -69,15 +69,19 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     case ESP_SPP_DATA_IND_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_DATA_IND_EVT len=%d handle=%d", param->data_ind.len, param->data_ind.handle);
+        //copy data from bt
         incoming_data = calloc(param->data_ind.len, sizeof(uint8_t));
         memcpy(incoming_data, param->data_ind.data, param->data_ind.len);
         data_length = calloc(param->data_ind.len, sizeof(param->data_ind.len));
         memcpy(data_length, &param->data_ind.len, sizeof(param->data_ind.len));
         handle = param->data_ind.handle;
-        if(xHandle != NULL){
-            vTaskDelete(xHandle);
+
+        //create session task
+        if(parse_exec_xHandle != NULL){
+            vTaskDelete(parse_exec_xHandle);
         }
-        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, xHandle);
+        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, parse_exec_xHandle);
+
         break;
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");
