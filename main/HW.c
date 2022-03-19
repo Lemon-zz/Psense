@@ -8,16 +8,28 @@ esp_err_t HW_init()
     gpio_set_level(LED_PIN, 1);
     gpio_pad_select_gpio(EN_PIN);
     gpio_set_direction(EN_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(EN_PIN, 1);
+    gpio_set_level(EN_PIN, DRIVERS_OFF);
 
 
 
 
-
+    //setup pwm pins
     ledcSetup(MOTOR_1_IN_1, LEDC_FREQUENCY, LEDC_DUTY_RES, M1_1_PIN);
     ledcSetup(MOTOR_1_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M1_2_PIN);
 
-    
+    ledcSetup(MOTOR_2_IN_1, LEDC_FREQUENCY, LEDC_DUTY_RES, M2_1_PIN);
+    ledcSetup(MOTOR_2_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M2_2_PIN);
+
+    ledcSetup(MOTOR_3_IN_1, LEDC_FREQUENCY, LEDC_DUTY_RES, M3_1_PIN);
+    ledcSetup(MOTOR_3_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M3_2_PIN);
+
+    ledcSetup(MOTOR_4_IN_1, LEDC_FREQUENCY, LEDC_DUTY_RES, M4_1_PIN);
+    ledcSetup(MOTOR_4_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M4_2_PIN);
+
+    ledcSetup(MOTOR_5_IN_1, LEDC_FREQUENCY, LEDC_DUTY_RES, M5_1_PIN);
+    ledcSetup(MOTOR_5_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M5_2_PIN);
+
+    /*
     set_PWM(MOTOR_1_IN_1, 255);
     set_PWM(MOTOR_1_IN_2, 0);
     uint32_t duty1 = ledc_get_duty(LEDC_HIGH_SPEED_MODE,MOTOR_5_IN_1);
@@ -45,33 +57,7 @@ esp_err_t HW_init()
     duty2 = ledc_get_duty(LEDC_HIGH_SPEED_MODE, MOTOR_5_IN_2);
     esp_log_buffer_hex("", &duty1, sizeof(uint32_t));
     esp_log_buffer_hex("", &duty2, sizeof(uint32_t));
-/*
-    set_m5_1_pwm(255);
-    set_m5_2_pwm(0);
-    vTaskDelay(700 / portTICK_RATE_MS);
-    set_m5_1_pwm(0);
-    set_m5_2_pwm(255);
-    vTaskDelay(500 / portTICK_RATE_MS);
-    set_m5_1_pwm(LEDC_DUTY_IDLE  );
-    set_m5_2_pwm(120);
 */
-/*
-    for (int  i = 0; i <= 255; i++)
-    {
-        ESP_LOG_BUFFER_CHAR(HW_TAG,"Duty",5);
-        uint32_t duty1 = ledc_get_duty(LEDC_LOW_SPEED_MODE,MOTOR_5_IN_1);
-        uint32_t duty2 = ledc_get_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2);
-        esp_log_buffer_hex("", &duty1, sizeof(uint32_t));
-        esp_log_buffer_hex("", &duty2, sizeof(uint32_t));
-
-        ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1, i));
-        ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1));
-
-        ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2, 125));
-        ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2));
-
-        vTaskDelay(100 / portTICK_RATE_MS);
-    }*/
     return 0;
 }
 
@@ -173,40 +159,20 @@ void set_PWM(uint8_t chan, uint32_t pwm)
 
 
 
-void stop_pwm()
-{
-    // m1****************************************************************************
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_1, LEDC_DUTY_IDLE));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_2, LEDC_DUTY_IDLE));
-
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_1));
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_1_IN_2));
-
-    // m2****************************************************************************
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_1, LEDC_DUTY_IDLE));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_2, LEDC_DUTY_IDLE));
-
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_1));
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_2_IN_2));
-
-    // m3****************************************************************************
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_1, LEDC_DUTY_IDLE));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_2, LEDC_DUTY_IDLE));
-
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_1));
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_HIGH_SPEED_MODE, MOTOR_3_IN_2));
-
-    // m4****************************************************************************
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_1, LEDC_DUTY_IDLE));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_2, LEDC_DUTY_IDLE));
-
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_1));
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_4_IN_2));
-
-    // m5****************************************************************************
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1, LEDC_DUTY_IDLE));
-    ESP_ERROR_CHECK(ledc_stop(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2, LEDC_DUTY_IDLE));
-
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_1));
-    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, MOTOR_5_IN_2));
+void stop_pwm() //to do: add retract then stop
+{   //M1
+    set_PWM(MOTOR_1_IN_1, LEDC_DUTY_IDLE);
+    set_PWM(MOTOR_1_IN_2, LEDC_DUTY_IDLE);
+    //M2
+    set_PWM(MOTOR_2_IN_1, LEDC_DUTY_IDLE);
+    set_PWM(MOTOR_2_IN_2, LEDC_DUTY_IDLE);
+    //M3
+    set_PWM(MOTOR_3_IN_1, LEDC_DUTY_IDLE);
+    set_PWM(MOTOR_3_IN_2, LEDC_DUTY_IDLE);
+    //M4
+    set_PWM(MOTOR_4_IN_1, LEDC_DUTY_IDLE);
+    set_PWM(MOTOR_4_IN_2, LEDC_DUTY_IDLE);
+    //M5
+    set_PWM(MOTOR_5_IN_1, LEDC_DUTY_IDLE);
+    set_PWM(MOTOR_5_IN_2, LEDC_DUTY_IDLE);
 }

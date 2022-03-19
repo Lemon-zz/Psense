@@ -13,6 +13,7 @@
     "array": "c",
     "string_view": "c",
     "*.ipp": "c",
-    "cstddef": "c"
+    "cstddef": "c",
+    "set": "c"
   }
 }
