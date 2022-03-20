@@ -79,9 +79,9 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 
         //create session task
         if(parse_exec_xHandle != NULL){
-            vTaskDelete(parse_exec_xHandle);
+            vTaskDelete(xTaskGetHandle("parse_exec_task"));
         }
-        if(incoming_data[0] == 0x07 || incoming_data[0] == 0x06){
+        if(incoming_data[0] == stop || incoming_data[0] == pause){
             vTaskDelete(xTaskGetHandle("parse_exec_task"));
             stop_pwm();
             send_ACK(handle);
