@@ -78,16 +78,22 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 
 
         //create session task
-        if(parse_exec_xHandle != NULL){
-            vTaskDelete(xTaskGetHandle("parse_exec_task"));
-        }
-        if(incoming_data[0] == stop || incoming_data[0] == pause){
-            vTaskDelete(xTaskGetHandle("parse_exec_task"));
+
+
+        if(incoming_data[0] == 0x06 || incoming_data[0] == 0x07){
+            if(xTaskGetHandle("parse_exec_task") != NULL){
+                vTaskDelete(xTaskGetHandle("parse_exec_task"));
+            }
             stop_pwm();
+            set_motors_en(DRIVERS_OFF);
             send_ACK(handle);
             break;
         }
-        
+
+        if(xTaskGetHandle("parse_exec_task") != NULL){
+           
+            vTaskDelete(xTaskGetHandle("parse_exec_task"));
+        }
 
         xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, parse_exec_xHandle);
         
@@ -256,7 +262,7 @@ void app_main(void)
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
     HW_init();
-
+    
 
 
 } 

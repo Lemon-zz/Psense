@@ -28,30 +28,8 @@ esp_err_t HW_init()
 
     ledcSetup(MOTOR_5_IN_1, LEDC_FREQUENCY, LEDC_DUTY_RES, M5_1_PIN);
     ledcSetup(MOTOR_5_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M5_2_PIN);
-
-    /*
-    set_PWM(MOTOR_1_IN_1, 255);
-    set_PWM(MOTOR_1_IN_2, 0);
-    uint32_t duty1 = ledc_get_duty(LEDC_HIGH_SPEED_MODE,MOTOR_5_IN_1);
-    uint32_t duty2 = ledc_get_duty(LEDC_HIGH_SPEED_MODE, MOTOR_5_IN_2);
-    esp_log_buffer_hex("", &duty1, sizeof(uint32_t));
-    esp_log_buffer_hex("", &duty2, sizeof(uint32_t));
-    vTaskDelay(700 / portTICK_RATE_MS);
-    set_PWM(MOTOR_1_IN_1, 0);
-    set_PWM(MOTOR_1_IN_2, 255);
-    duty1 = ledc_get_duty(LEDC_HIGH_SPEED_MODE,MOTOR_5_IN_1);
-    duty2 = ledc_get_duty(LEDC_HIGH_SPEED_MODE, MOTOR_5_IN_2);
-    esp_log_buffer_hex("", &duty1, sizeof(uint32_t));
-    esp_log_buffer_hex("", &duty2, sizeof(uint32_t));
-    vTaskDelay(500 / portTICK_RATE_MS);
-    set_PWM(MOTOR_1_IN_1, 127);
-    set_PWM(MOTOR_1_IN_2, 127);
-    gpio_set_level(EN_PIN, 0);
-    duty1 = ledc_get_duty(LEDC_HIGH_SPEED_MODE,MOTOR_5_IN_1);
-    duty2 = ledc_get_duty(LEDC_HIGH_SPEED_MODE, MOTOR_5_IN_2);
-    esp_log_buffer_hex("", &duty1, sizeof(uint32_t));
-    esp_log_buffer_hex("", &duty2, sizeof(uint32_t));
-*/
+    
+    set_motors_en(DRIVERS_OFF);
     return 0;
 }
 
