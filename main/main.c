@@ -76,12 +76,21 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         memcpy(data_length, &param->data_ind.len, sizeof(param->data_ind.len));
         handle = param->data_ind.handle;
 
+
         //create session task
         if(parse_exec_xHandle != NULL){
             vTaskDelete(parse_exec_xHandle);
         }
-        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, parse_exec_xHandle);
+        if(incoming_data[0] == 0x07 || incoming_data[0] == 0x06){
+            vTaskDelete(xTaskGetHandle("parse_exec_task"));
+            stop_pwm();
+            send_ACK(handle);
+            break;
+        }
+        
 
+        xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, parse_exec_xHandle);
+        
         break;
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");
