@@ -111,7 +111,7 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
             ESP_LOG_BUFFER_CHAR(BT_TAG, "Payload", 7);
             esp_log_buffer_hex("", &rx_packet->payload[total_block_num + 2 + i], sizeof(uint8_t));
             ESP_LOG_BUFFER_CHAR(BT_TAG, "Perm", 4);
-            esp_log_buffer_hex("", &position[0], 5);
+            esp_log_buffer_hex("", position, 5);
 
             for (uint8_t j = 0; j < CYCLES_PER_BLOCK; j++)
             {
@@ -361,7 +361,7 @@ void block_exec(struct session *incoming_session)
         break;
 
     default:
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "case d", 6);
+        ESP_LOG_BUFFER_CHAR(BT_TAG, "Wrong position!", 16);
 
         break;
     }
