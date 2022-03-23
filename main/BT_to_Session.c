@@ -48,16 +48,15 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
     {
 
     case reserved:
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "ID: Reserved", 14);
         break;
 
     case get_state:
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "ID: Get State", 14);
+
         send_ACK(handle);
         break;
 
     case get_state_info:
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "ID: Get State Info", 18);
+
         tx_packet.ID = 0x12;
         tx_packet.length = 0x04;
         uint8_t buf_GSI[1];
@@ -68,10 +67,6 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
         break;
 
     case one_step:
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "ID: Set one Step", sizeof("ID: Set one Step"));
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "Payload:", 10);
-        esp_log_buffer_hex("", rx_packet->payload, sizeof(rx_packet->payload));
-
         incoming_session.position = &rx_packet->payload[0];
         incoming_session.act_time = &rx_packet->payload[1];
         incoming_session.idle_time = &rx_packet->payload[2];
@@ -83,18 +78,10 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
         break;
 
     case session_info:
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "ID: Session info", 18);
-
+        ;
         uint8_t total_block_num = rx_packet->payload[0];
         uint8_t unique_block_num = rx_packet->payload[1];
         uint8_t total_cycles_num = total_block_num * CYCLES_PER_BLOCK;
-
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "total_block_num", 15);
-        esp_log_buffer_hex("", &total_block_num, sizeof(total_block_num));
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "unique_block_num", 16);
-        esp_log_buffer_hex("", &unique_block_num, sizeof(unique_block_num));
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "total_cycles_num", 16);
-        esp_log_buffer_hex("", &total_cycles_num, sizeof(total_cycles_num));
 
         incoming_session.position       = calloc(total_cycles_num, sizeof(uint8_t));
         incoming_session.delay_time     = calloc(total_cycles_num, sizeof(uint8_t));
@@ -108,10 +95,7 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
             position = calloc(CYCLES_PER_BLOCK, sizeof(uint8_t));
             num2permutation(CYCLES_PER_BLOCK, rx_packet->payload[total_block_num + 2 + i], position);
 
-            ESP_LOG_BUFFER_CHAR(BT_TAG, "Payload", 7);
-            esp_log_buffer_hex("", &rx_packet->payload[total_block_num + 2 + i], sizeof(uint8_t));
-            ESP_LOG_BUFFER_CHAR(BT_TAG, "Perm", 4);
-            esp_log_buffer_hex("", position, 5);
+            uint8_t current_block_position = rx_packet->payload[2 + i];
 
             for (uint8_t j = 0; j < CYCLES_PER_BLOCK; j++)
             {
@@ -120,9 +104,9 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
                 {
                     incoming_session.position[i * CYCLES_PER_BLOCK + j] = 5;
                 }
-                incoming_session.delay_time[i * CYCLES_PER_BLOCK + j]   = rx_packet->payload[2 + (2 * total_block_num) + ((i % unique_block_num) * 3)] == 0x03 ? 3 : 0;
-                incoming_session.act_time[i * CYCLES_PER_BLOCK + j]     = rx_packet->payload[2 + (2 * total_block_num) + ((i % unique_block_num) * 3) + 1];
-                incoming_session.idle_time[i * CYCLES_PER_BLOCK + j]    = rx_packet->payload[2 + (2 * total_block_num) + ((i % unique_block_num) * 3) + 2];
+                incoming_session.delay_time[i * CYCLES_PER_BLOCK + j]   = rx_packet->payload[2 + (2 * total_block_num) + ((current_block_position - 1) * 3)] == 0x03 ? 3 : 0;
+                incoming_session.act_time[i * CYCLES_PER_BLOCK + j]     = rx_packet->payload[2 + (2 * total_block_num) + ((current_block_position - 1) * 3) + 1];
+                incoming_session.idle_time[i * CYCLES_PER_BLOCK + j]    = rx_packet->payload[2 + (2 * total_block_num) + ((current_block_position - 1) * 3) + 2];
             }
         }
 
@@ -145,11 +129,6 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
 
     case calibration:
         set_data_to_nvs_by_position(rx_packet->payload[0], rx_packet->payload[1]);
-        /*
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "NVS:", 4);
-        esp_log_buffer_hex("", &rx_packet->payload[0], 1);
-        esp_log_buffer_hex("", &rx_packet->payload[1], 1);
-        */
         send_ACK(handle);
         break;
 
@@ -227,8 +206,8 @@ void send_to_bt(struct bt_packet *tx_packet, uint32_t handle)
         // esp_log_buffer_hex("", &tx_packet->ID, 1);
         // ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet length:",14);
         // esp_log_buffer_hex("", &tx_packet->length, 1);
-        ESP_LOG_BUFFER_CHAR(BT_TAG, "Packet payload:", 14);
-        esp_log_buffer_hex("", tx_packet->payload, 1);
+        // ESP_LOG_BUFFER_CHAR(BT_TAG, "Packet payload:", 14);
+        // esp_log_buffer_hex("", tx_packet->payload, 1);
         // ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet crc:",12);
         // esp_log_buffer_hex("", &tx_packet->crc16, 2);
 
@@ -283,7 +262,7 @@ uint8_t fact(uint8_t num)
 
 void block_exec(struct session *incoming_session)
 {
-
+/*
     ESP_LOG_BUFFER_CHAR(BT_TAG, "Session", 8);
     ESP_LOG_BUFFER_CHAR(BT_TAG, "PWM", 4);
     esp_log_buffer_hex("", incoming_session->pwm, 1);
@@ -295,6 +274,7 @@ void block_exec(struct session *incoming_session)
     esp_log_buffer_hex("", incoming_session->delay_time, 1);
     ESP_LOG_BUFFER_CHAR(BT_TAG, "Position", 9);
     esp_log_buffer_hex("", incoming_session->position, 1);
+    */
     set_motors_en(DRIVERS_ON);
     switch ((int)incoming_session->position[0])
     {
@@ -492,7 +472,6 @@ void set_data_to_nvs_by_position(uint8_t position, uint8_t pwm)
         break;
 
     default:
-    ESP_LOG_BUFFER_CHAR(BT_TAG, "def:", 4);
         break;
     }
     ESP_ERROR_CHECK(nvs_commit(nvs_handle));

@@ -42,7 +42,7 @@
 #define MOTOR_5_IN_2            (12)
 
 #define LEDC_DUTY_RES           LEDC_TIMER_8_BIT // Set duty resolution to 8 bits
-#define LEDC_DUTY_IDLE          (127) // Set duty to 50%. ((2 ** 12) - 1) * 50% = 127
+#define LEDC_DUTY_IDLE          (127) // Set duty to 50%. ((2 ** 8) - 1) * 50% = 127
 #define LEDC_FREQUENCY          (20000) // Frequency in Hertz. 
 
 #define EN_PIN GPIO_NUM_14
