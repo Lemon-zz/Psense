@@ -67,11 +67,18 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
         break;
 
     case one_step:
-        incoming_session.position = &rx_packet->payload[0];
-        incoming_session.act_time = &rx_packet->payload[1];
-        incoming_session.idle_time = &rx_packet->payload[2];
-        incoming_session.pwm = &rx_packet->payload[3];
-        *incoming_session.pwm = *incoming_session.pwm * 25;
+        incoming_session.position       = calloc(1, sizeof(uint8_t));
+        incoming_session.act_time       = calloc(1, sizeof(uint8_t));
+        incoming_session.idle_time      = calloc(1, sizeof(uint8_t));
+        incoming_session.pwm            = calloc(1, sizeof(uint8_t));
+        incoming_session.delay_time     = calloc(1, sizeof(uint8_t));
+
+        incoming_session.position       = &rx_packet->payload[0];
+        incoming_session.act_time       = &rx_packet->payload[1];
+        incoming_session.idle_time      = &rx_packet->payload[2];
+        incoming_session.pwm            = &rx_packet->payload[3];
+        *incoming_session.pwm           = (*incoming_session.pwm) * 25;
+        
         block_exec(&incoming_session);
         send_session_ack(&incoming_session.position[0], handle);
 
@@ -139,6 +146,20 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
 
     case stop:
         stop_pwm();
+        send_ACK(handle);
+        break;
+
+    case set_tactor:
+    ;
+        uint8_t *new_tactors;
+        new_tactors = calloc(5, sizeof(uint8_t));
+
+        for (size_t i = 0; i < 5; i++)
+        {
+           new_tactors[i] = rx_packet->payload[i];
+        }
+
+        set_data_to_nvs_tactors(new_tactors);
         send_ACK(handle);
         break;
 
@@ -262,7 +283,7 @@ uint8_t fact(uint8_t num)
 
 void block_exec(struct session *incoming_session)
 {
-/*
+
     ESP_LOG_BUFFER_CHAR(BT_TAG, "Session", 8);
     ESP_LOG_BUFFER_CHAR(BT_TAG, "PWM", 4);
     esp_log_buffer_hex("", incoming_session->pwm, 1);
@@ -274,9 +295,17 @@ void block_exec(struct session *incoming_session)
     esp_log_buffer_hex("", incoming_session->delay_time, 1);
     ESP_LOG_BUFFER_CHAR(BT_TAG, "Position", 9);
     esp_log_buffer_hex("", incoming_session->position, 1);
-    */
+    
     set_motors_en(DRIVERS_ON);
-    switch ((int)incoming_session->position[0])
+    uint8_t *tactors_array;
+    tactors_array = calloc(5, sizeof(uint8_t));
+
+    get_data_from_nvs_tactors(tactors_array);
+
+    ESP_LOG_BUFFER_CHAR(BT_TAG, "Saved Position", sizeof("Saved Position"));
+    esp_log_buffer_hex("", &tactors_array[(int)incoming_session->position[0]-1], 1);
+
+    switch (tactors_array[(int)incoming_session->position[0]-1])
     {
     case 01:
         vTaskDelay(((incoming_session->delay_time[0]) * 1000) / portTICK_RATE_MS);
@@ -475,5 +504,31 @@ void set_data_to_nvs_by_position(uint8_t position, uint8_t pwm)
         break;
     }
     ESP_ERROR_CHECK(nvs_commit(nvs_handle));
+    nvs_close(nvs_handle);
+}
+
+
+void set_data_to_nvs_tactors(uint8_t *new_tactors){
+    nvs_handle_t nvs_handle;
+    size_t req_size = 5;
+    ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &nvs_handle));
+    nvs_set_blob(nvs_handle,"Tactor data", new_tactors, req_size);
+    ESP_ERROR_CHECK(nvs_commit(nvs_handle));
+    nvs_close(nvs_handle);
+}
+
+
+void get_data_from_nvs_tactors(uint8_t *tactors_array){
+    nvs_handle_t nvs_handle;
+    size_t *length;
+    length = calloc(1, sizeof(size_t));
+    *length = 5;
+    tactors_array[0] = 1;
+    tactors_array[1] = 2;
+    tactors_array[2] = 3;
+    tactors_array[3] = 4;
+    tactors_array[4] = 5;
+    ESP_ERROR_CHECK(nvs_open("storage", NVS_READWRITE, &nvs_handle));
+    ESP_ERROR_CHECK(nvs_get_blob(nvs_handle,"Tactor data", tactors_array, length));
     nvs_close(nvs_handle);
 }
