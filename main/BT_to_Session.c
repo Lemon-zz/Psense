@@ -77,7 +77,7 @@ void parse_bt_packet(struct bt_packet *rx_packet, uint32_t handle)
         incoming_session.act_time       = &rx_packet->payload[1];
         incoming_session.idle_time      = &rx_packet->payload[2];
         incoming_session.pwm            = &rx_packet->payload[3];
-        *incoming_session.pwm           = (*incoming_session.pwm) * 25;
+        *incoming_session.pwm           = (*incoming_session.pwm) * 12;
         
         block_exec(&incoming_session);
         send_session_ack(&incoming_session.position[0], handle);
@@ -186,7 +186,7 @@ void send_session_ack(uint8_t *position, uint32_t handle)
     tx_packet.length = 0x05;
     tx_packet.payload = calloc(sizeof(uint8_t), sizeof(uint8_t));
     memcpy(tx_packet.payload, position, sizeof(uint8_t));
-    uint8_t buf[2];
+    uint8_t buf[4];
     buf[0] = tx_packet.ID;
     buf[1] = tx_packet.length;
     buf[2] = tx_packet.payload[0];
@@ -199,7 +199,7 @@ void send_ACK(uint32_t handle)
     struct bt_packet tx_packet;
     tx_packet.ID = ACK;
     tx_packet.length = 0x04;
-    uint8_t buf[1];
+    uint8_t buf[2];
     buf[0] = tx_packet.ID;
     buf[1] = tx_packet.length;
     tx_packet.crc16 = crc16Calc(buf, 2);
@@ -211,7 +211,7 @@ void send_to_bt(struct bt_packet *tx_packet, uint32_t handle)
 
     if (tx_packet->length == 4)
     { // to do:
-        uint8_t packet[3];
+        uint8_t packet[4];
         packet[0] = tx_packet->ID;
         packet[1] = tx_packet->length;
         packet[2] = tx_packet->crc16;
@@ -232,7 +232,7 @@ void send_to_bt(struct bt_packet *tx_packet, uint32_t handle)
         // ESP_LOG_BUFFER_CHAR(BT_TAG,"Packet crc:",12);
         // esp_log_buffer_hex("", &tx_packet->crc16, 2);
 
-        uint8_t packet[4];
+        uint8_t packet[5];
         packet[0] = tx_packet->ID;
         packet[1] = tx_packet->length;
         packet[2] = tx_packet->payload[0];
@@ -296,7 +296,7 @@ void block_exec(struct session *incoming_session)
     ESP_LOG_BUFFER_CHAR(BT_TAG, "Position", 9);
     esp_log_buffer_hex("", incoming_session->position, 1);
     
-    set_motors_en(DRIVERS_ON);
+    
     uint8_t *tactors_array;
     tactors_array = calloc(5, sizeof(uint8_t));
 
@@ -309,63 +309,73 @@ void block_exec(struct session *incoming_session)
     {
     case 01:
         vTaskDelay(((incoming_session->delay_time[0]) * 1000) / portTICK_RATE_MS);
-        set_PWM(MOTOR_1_IN_1, 0);
-        set_PWM(MOTOR_1_IN_2, incoming_session->pwm[0]);                         // push
+        set_motors_en(DRIVERS_ON);
+        set_PWM(MOTOR_1_IN_1, 127 - incoming_session->pwm[0]);                   //push   
+        set_PWM(MOTOR_1_IN_2, 127 + incoming_session->pwm[0]);                   // drv8601 is differential
         vTaskDelay(((incoming_session->act_time[0]) * 1000) / portTICK_RATE_MS); // wait
         set_PWM(MOTOR_1_IN_1, 200);                                              // retract
         set_PWM(MOTOR_1_IN_2, 0);
         vTaskDelay(100 / portTICK_RATE_MS);
         set_PWM(MOTOR_1_IN_1, LEDC_DUTY_IDLE); // set idle
         set_PWM(MOTOR_1_IN_2, LEDC_DUTY_IDLE);
+        set_motors_en(DRIVERS_OFF);//cool off
         vTaskDelay(((incoming_session->idle_time[0]) * 1000) / portTICK_RATE_MS);
         break;
 
     case 02:
         vTaskDelay(((incoming_session->delay_time[0]) * 1000) / portTICK_RATE_MS);
-        set_PWM(MOTOR_2_IN_1, 0);
-        set_PWM(MOTOR_2_IN_2, incoming_session->pwm[0]);                         // push
+        set_motors_en(DRIVERS_ON);
+        set_PWM(MOTOR_2_IN_1, 127 - incoming_session->pwm[0]);                   //push   
+        set_PWM(MOTOR_2_IN_2, 127 + incoming_session->pwm[0]);                        
         vTaskDelay(((incoming_session->act_time[0]) * 1000) / portTICK_RATE_MS); // wait
         set_PWM(MOTOR_2_IN_1, 200);                                              // retract
         set_PWM(MOTOR_2_IN_2, 0);
         vTaskDelay(100 / portTICK_RATE_MS);
         set_PWM(MOTOR_2_IN_1, LEDC_DUTY_IDLE); // set idle
         set_PWM(MOTOR_2_IN_2, LEDC_DUTY_IDLE);
+        set_motors_en(DRIVERS_OFF);
         vTaskDelay(((incoming_session->idle_time[0]) * 1000) / portTICK_RATE_MS);
         break;
     case 03:
         vTaskDelay(((incoming_session->delay_time[0]) * 1000) / portTICK_RATE_MS);
-        set_PWM(MOTOR_3_IN_1, 0);
-        set_PWM(MOTOR_3_IN_2, incoming_session->pwm[0]);                         // push
+        set_motors_en(DRIVERS_ON);
+        set_PWM(MOTOR_3_IN_1, 127 - incoming_session->pwm[0]);                   //push   
+        set_PWM(MOTOR_3_IN_2, 127 + incoming_session->pwm[0]);                       
         vTaskDelay(((incoming_session->act_time[0]) * 1000) / portTICK_RATE_MS); // wait
         set_PWM(MOTOR_3_IN_1, 200);                                              // retract
         set_PWM(MOTOR_3_IN_2, 0);
         vTaskDelay(100 / portTICK_RATE_MS);
         set_PWM(MOTOR_3_IN_1, LEDC_DUTY_IDLE); // set idle
         set_PWM(MOTOR_3_IN_2, LEDC_DUTY_IDLE);
+        set_motors_en(DRIVERS_OFF);
         vTaskDelay(((incoming_session->idle_time[0]) * 1000) / portTICK_RATE_MS);
         break;
     case 04:
         vTaskDelay(((incoming_session->delay_time[0]) * 1000) / portTICK_RATE_MS);
-        set_PWM(MOTOR_4_IN_1, 0);
-        set_PWM(MOTOR_4_IN_2, incoming_session->pwm[0]);                         // push
+        set_motors_en(DRIVERS_ON);
+        set_PWM(MOTOR_4_IN_1, 127 - incoming_session->pwm[0]);                   //push   
+        set_PWM(MOTOR_4_IN_2, 127 + incoming_session->pwm[0]);                        
         vTaskDelay(((incoming_session->act_time[0]) * 1000) / portTICK_RATE_MS); // wait
         set_PWM(MOTOR_4_IN_1, 200);                                              // retract
         set_PWM(MOTOR_4_IN_2, 0);
         vTaskDelay(100 / portTICK_RATE_MS);
         set_PWM(MOTOR_4_IN_1, LEDC_DUTY_IDLE); // set idle
         set_PWM(MOTOR_4_IN_2, LEDC_DUTY_IDLE);
+        set_motors_en(DRIVERS_OFF);
         vTaskDelay(((incoming_session->idle_time[0]) * 1000) / portTICK_RATE_MS);
         break;
     case 05:
         vTaskDelay(((incoming_session->delay_time[0]) * 1000) / portTICK_RATE_MS);
-        set_PWM(MOTOR_5_IN_1, 0);
-        set_PWM(MOTOR_5_IN_2, incoming_session->pwm[0]);                         // push
+        set_motors_en(DRIVERS_ON);
+        set_PWM(MOTOR_5_IN_1, 127 - incoming_session->pwm[0]);                   //push   
+        set_PWM(MOTOR_5_IN_2, 127 + incoming_session->pwm[0]);                       
         vTaskDelay(((incoming_session->act_time[0]) * 1000) / portTICK_RATE_MS); // wait
         set_PWM(MOTOR_5_IN_1, 200);                                              // retract
         set_PWM(MOTOR_5_IN_2, 0);
         vTaskDelay(100 / portTICK_RATE_MS);
         set_PWM(MOTOR_5_IN_1, LEDC_DUTY_IDLE); // set idle
         set_PWM(MOTOR_5_IN_2, LEDC_DUTY_IDLE);
+        set_motors_en(DRIVERS_OFF);
         vTaskDelay(((incoming_session->idle_time[0]) * 1000) / portTICK_RATE_MS);
         break;
 

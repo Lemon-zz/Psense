@@ -25,8 +25,9 @@
 #define M3_2_PIN                GPIO_NUM_4
 #define M4_1_PIN                GPIO_NUM_2
 #define M4_2_PIN                GPIO_NUM_15
-#define M5_1_PIN                GPIO_NUM_23
-#define M5_2_PIN                GPIO_NUM_22
+//revert
+#define M5_1_PIN                GPIO_NUM_22
+#define M5_2_PIN                GPIO_NUM_23
 
 
 
