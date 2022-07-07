@@ -6,6 +6,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
+#include "driver/gpio.h"
+#include "driver/adc.h"
+#include "esp_adc_cal.h"
+
+
 
 #define LEDC_MAX_BIT_WIDTH      (20)
 #define LEDC_CHANNELS           (16)
@@ -14,18 +19,44 @@
 #define LEDC_HIGH_MODE          LEDC_HIGH_SPEED_MODE
 #define LEDC_LOW_MODE           LEDC_LOW_SPEED_MODE
 
-//swapped due to soldering
-#define M1_1_PIN                GPIO_NUM_18
-#define M1_2_PIN                GPIO_NUM_19
-//swapped due to soldering
+//ADC Pins
+#define CHAN_1                  ADC_CHANNEL_4
+#define CHAN_2                  ADC_CHANNEL_5
+#define CHAN_3                  ADC_CHANNEL_8
+#define CHAN_4                  ADC_CHANNEL_9
+#define CHAN_5                  ADC_CHANNEL_7
+#define batt_chan               ADC_CHANNEL_7 //adc1
+
+
+//ADC
+#define DEFAULT_VREF    1100        //Use adc2_vref_to_gpio() to obtain a better estimate
+#define NO_OF_SAMPLES   32          //Multisampling
+
+static esp_adc_cal_characteristics_t *adc_chars;
+
+
+static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
+static const adc_atten_t atten = ADC_ATTEN_DB_11;
+static const adc_unit_t ADC1 = ADC_UNIT_1;
+static const adc_unit_t ADC2 = ADC_UNIT_2;
+
+void config_ADC(adc_unit_t unit, adc_channel_t chann);
+uint32_t get_ADC_data(adc_unit_t unit, adc_channel_t chann);
+
+
+//Motors
+#define M1_1_PIN                GPIO_NUM_19
+#define M1_2_PIN                GPIO_NUM_18
+
 #define M2_1_PIN                GPIO_NUM_17
 #define M2_2_PIN                GPIO_NUM_5
 
-#define M3_1_PIN                GPIO_NUM_16
-#define M3_2_PIN                GPIO_NUM_4
-#define M4_1_PIN                GPIO_NUM_2
-#define M4_2_PIN                GPIO_NUM_15
-//revert
+#define M3_1_PIN                GPIO_NUM_4
+#define M3_2_PIN                GPIO_NUM_16
+
+#define M4_1_PIN                GPIO_NUM_15
+#define M4_2_PIN                GPIO_NUM_2
+
 #define M5_1_PIN                GPIO_NUM_22
 #define M5_2_PIN                GPIO_NUM_23
 
@@ -48,6 +79,7 @@
 
 #define EN_PIN GPIO_NUM_14
 #define LED_PIN GPIO_NUM_13
+#define BTN_GPIO GPIO_NUM_21
 #define DRIVERS_ON 1
 #define DRIVERS_OFF 0
 

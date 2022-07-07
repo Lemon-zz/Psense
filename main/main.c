@@ -6,25 +6,35 @@
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "esp_log.h"
 #include "esp_bt.h"
 #include "esp_bt_main.h"
 #include "esp_gap_bt_api.h"
 #include "esp_bt_device.h"
 #include "esp_spp_api.h"
-
-
+#include "linenoise/linenoise.h"
 #include "time.h"
 #include "sys/time.h"
 
 #include "BT_to_Session.h"
 
 
+
 #define SPP_TAG "Psense_SPP"
 #define SPP_SERVER_NAME "SPP_SERVER"
 #define DEVICE_NAME "PSense"
 
-
+#define s1_max 220
+#define s1_min 142
+#define s2_max 220
+#define s2_min 142
+#define s3_max 220
+#define s3_min 142
+#define s4_max 220
+#define s4_min 142
+#define s5_max 2700
+#define s5_min 142
 
 static const esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;
 static const esp_spp_sec_t sec_mask = ESP_SPP_SEC_AUTHENTICATE;
@@ -32,15 +42,305 @@ static const esp_spp_role_t role_slave = ESP_SPP_ROLE_SLAVE;
 
 uint8_t  *incoming_data;
 uint16_t *data_length;
+uint8_t *retract_time, *forward_time;
+
 uint32_t handle;
+
 TaskHandle_t parse_exec_xHandle = NULL;
+TaskHandle_t m1_sens1_xHandle = NULL;
+TaskHandle_t m2_sens2_xHandle = NULL;
+TaskHandle_t m3_sens3_xHandle = NULL;
+TaskHandle_t m4_sens4_xHandle = NULL;
+TaskHandle_t m5_sens5_xHandle = NULL;
+TaskHandle_t ADC_task_xHandle = NULL;
+
+ // Create a queue to hold one uint32_t value.  It is strongly
+ // recommended *not* to use xQueueOverwrite() on queues that can
+ // contain more than one value, and doing so will trigger an assertion
+
+QueueHandle_t Sens1_xQueue;
+QueueHandle_t Sens2_xQueue;
+QueueHandle_t Sens3_xQueue;
+QueueHandle_t Sens4_xQueue;
+QueueHandle_t Sens5_xQueue;
+QueueHandle_t is_session_xQueue;
+
+
+uint32_t ADC_voltage, batt_voltage;
+uint8_t out_min = 0;
+uint8_t out_max = 127;
+uint8_t is_session_active = 1;
+
+
+
+long map(long x, long in_min, long in_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void ADC_task(void *pvParameter){
+    Sens1_xQueue = xQueueCreate( 1, sizeof( uint32_t ) );
+    Sens2_xQueue = xQueueCreate( 1, sizeof( uint32_t ) );
+    Sens3_xQueue = xQueueCreate( 1, sizeof( uint32_t ) );
+    Sens4_xQueue = xQueueCreate( 1, sizeof( uint32_t ) );
+    Sens5_xQueue = xQueueCreate( 1, sizeof( uint32_t ) );
+    while(1){
+    
+    ADC_voltage = get_ADC_data(ADC1, CHAN_1);
+    xQueueOverwrite(Sens1_xQueue, &ADC_voltage);
+    ADC_voltage = get_ADC_data(ADC1, CHAN_2);
+    xQueueOverwrite(Sens2_xQueue, &ADC_voltage);
+    ADC_voltage = get_ADC_data(ADC2, CHAN_3);
+    xQueueOverwrite(Sens3_xQueue, &ADC_voltage);
+    ADC_voltage = get_ADC_data(ADC2, CHAN_4);
+    xQueueOverwrite(Sens4_xQueue, &ADC_voltage); 
+    ADC_voltage = get_ADC_data(ADC2, CHAN_5);
+    xQueueOverwrite(Sens5_xQueue, &ADC_voltage);
+
+
+    if(gpio_get_level(BTN_GPIO) && is_session_active == 0){
+        is_session_active = 1;
+        xQueueOverwrite(is_session_xQueue, &is_session_active);
+        set_motors_en(DRIVERS_OFF);
+        vTaskDelay(500 / portTICK_RATE_MS);
+    }
+
+    if(gpio_get_level(BTN_GPIO) && is_session_active == 1){
+        is_session_active = 0;
+        xQueueOverwrite(is_session_xQueue, &is_session_active);
+        vTaskDelay(1000 / portTICK_RATE_MS);
+    }
+    vTaskDelay(100 / portTICK_RATE_MS);
+}
+    vTaskDelete(NULL);
+}
+
+
+
+void m1_sens1(void *pvParameter)
+{   
+    uint8_t is_m_retracted = 0;
+    uint8_t pwm1, saved_pwm = 0;
+    uint8_t is_session_going;
+    uint32_t sens1, sens2, sens3, sens4, sens5 = 0; 
+    
+    while(1)
+    {
+    xQueuePeek(is_session_xQueue, &is_session_going, 1);
+    saved_pwm = get_pwm_from_nvs_by_position(1);
+    if(is_session_going != 1){
+    
+    xQueueReceive(Sens1_xQueue, &sens1, 1);
+    xQueuePeek(Sens2_xQueue, &sens2, 1);
+    xQueuePeek(Sens3_xQueue, &sens3, 1);
+    xQueuePeek(Sens4_xQueue, &sens4, 1);
+    xQueuePeek(Sens5_xQueue, &sens5, 1);
+
+    printf("Sensor 1: %d\n", sens1);
+    printf("Sensor 2: %d\n", sens2);
+    printf("Sensor 3: %d\n", sens3);
+    printf("Sensor 4: %d\n", sens4);
+    printf("Sensor 5: %d\n", sens5);
+
+    set_motors_en(DRIVERS_ON);
+
+    if(sens1 > s1_max){
+    sens1 = s1_max;
+        }
+  if(sens1 < s1_max - 20) {
+     is_m_retracted = 0;
+     pwm1 = map(sens1, s1_min, s1_max);
+     printf("PWM 1: %d\n", pwm1);
+     set_PWM(MOTOR_1_IN_1, pwm1);
+     set_PWM(MOTOR_1_IN_2, 255 - pwm1);
+     vTaskDelay(100 / portTICK_RATE_MS);
+  }
+    if(sens1  > s1_max - 20 && is_m_retracted == 0){
+        set_PWM(MOTOR_1_IN_1, 255-saved_pwm);
+        set_PWM(MOTOR_1_IN_2, saved_pwm);
+        vTaskDelay(retract_time[0]*250 / portTICK_RATE_MS);
+        set_PWM(MOTOR_1_IN_1, 127);
+        set_PWM(MOTOR_1_IN_2, 127);
+        is_m_retracted = 1;
+  }
+    }
+    vTaskDelay(100 / portTICK_RATE_MS);
+    linenoiseClearScreen();
+    }
+    vTaskDelete(NULL);
+}
+
+void m2_sens2(void *pvParameter)
+{   
+    uint8_t is_m_retracted = 0;
+    uint8_t pwm1, saved_pwm = 0;
+    uint8_t is_session_going;
+    uint32_t sens2 = 0; 
+    while(1)
+    {
+    xQueuePeek(is_session_xQueue, &is_session_going, 1);
+    saved_pwm = get_pwm_from_nvs_by_position(2);
+    if(is_session_going != 1){
+    xQueueReceive(Sens2_xQueue, &sens2, 1);
+    if(sens2 > s2_max){
+    sens2 = s2_max;
+        }
+
+  if(sens2 < s2_max - 20) {
+     is_m_retracted = 0;
+     pwm1 = map(sens2, s2_min, s2_max);
+     set_PWM(MOTOR_2_IN_1, pwm1);
+     set_PWM(MOTOR_2_IN_2, 255 - pwm1);
+     vTaskDelay(100 / portTICK_RATE_MS);
+  }
+
+    if(sens2  > s2_max - 20 && is_m_retracted == 0){
+        set_PWM(MOTOR_2_IN_1, 255-saved_pwm);
+        set_PWM(MOTOR_2_IN_2, saved_pwm);
+        vTaskDelay(retract_time[1]*250 / portTICK_RATE_MS);
+        set_PWM(MOTOR_2_IN_1, 127);
+        set_PWM(MOTOR_2_IN_2, 127);
+        is_m_retracted = 1;
+  }
+    }
+    vTaskDelay(100 / portTICK_RATE_MS);
+    }
+    vTaskDelete(NULL);
+}
+
+void m3_sens3(void *pvParameter)
+{   
+    uint8_t is_m_retracted = 0;
+    uint8_t pwm1, saved_pwm = 0;
+    uint8_t is_session_going;
+    uint32_t sens3 = 0; 
+    while(1)
+    {
+    xQueuePeek(is_session_xQueue, &is_session_going, 1);
+    saved_pwm = get_pwm_from_nvs_by_position(3);
+    if(is_session_going != 1){
+
+    xQueueReceive(Sens3_xQueue, &sens3, 1);
+
+    
+    if(sens3 > s3_max){
+    sens3 = s3_max;
+        }
+  if(sens3 < s3_max - 20) {
+     is_m_retracted = 0;
+     pwm1 = map(sens3, s3_min, s3_max);
+     set_PWM(MOTOR_3_IN_1, pwm1);
+     set_PWM(MOTOR_3_IN_2, 255 - pwm1);
+     vTaskDelay(100 / portTICK_RATE_MS);
+  }
+    if(sens3  > s3_max - 20 && is_m_retracted == 0){
+        set_PWM(MOTOR_3_IN_1, 255-saved_pwm);
+        set_PWM(MOTOR_3_IN_2, saved_pwm);
+        vTaskDelay(retract_time[2]*250 / portTICK_RATE_MS);
+        set_PWM(MOTOR_3_IN_1, 127);
+        set_PWM(MOTOR_3_IN_2, 127);
+        is_m_retracted = 1;
+  }
+    }
+    vTaskDelay(100 / portTICK_RATE_MS);
+    }
+    vTaskDelete(NULL);
+}
+
+void m4_sens4(void *pvParameter)
+{   
+    uint8_t is_m_retracted = 0;
+    uint8_t pwm1, saved_pwm = 0;
+    uint8_t is_session_going;
+    uint32_t sens4 = 0; 
+    set_motors_en(DRIVERS_ON);
+    while(1)
+    {
+    xQueuePeek(is_session_xQueue, &is_session_going, 1);
+    saved_pwm = get_pwm_from_nvs_by_position(4);
+    if(is_session_going != 1){
+
+    xQueueReceive(Sens4_xQueue, &sens4, 1);
+
+    if(sens4 > s4_max){
+    sens4 = s4_max;
+        }
+  if(sens4 < s4_max - 20) {
+     is_m_retracted = 0;
+     pwm1 = map(sens4, s4_min, s4_max);
+     printf("PWM 4: %d\n", pwm1);
+     set_PWM(MOTOR_4_IN_1, pwm1);
+     set_PWM(MOTOR_4_IN_2, 255 - pwm1);
+     vTaskDelay(100 / portTICK_RATE_MS);
+  }
+    if(sens4  > s4_max - 20 && is_m_retracted == 0){
+        set_PWM(MOTOR_4_IN_1, 255-saved_pwm);
+        set_PWM(MOTOR_4_IN_2, saved_pwm);
+        vTaskDelay(retract_time[3]*250 / portTICK_RATE_MS);
+        set_PWM(MOTOR_4_IN_1, 127);
+        set_PWM(MOTOR_4_IN_2, 127);
+        is_m_retracted = 1;
+  }
+    }
+    vTaskDelay(100 / portTICK_RATE_MS);
+    }
+    vTaskDelete(NULL);
+}
+
+void m5_sens5(void *pvParameter)
+{   
+    uint8_t is_m_retracted = 0;
+    uint8_t pwm1, saved_pwm = 0;
+    uint8_t is_session_going;
+    uint32_t sens5 = 0; 
+    set_motors_en(DRIVERS_ON);
+    while(1)
+    {
+    xQueuePeek(is_session_xQueue, &is_session_going, 1);
+    saved_pwm = get_pwm_from_nvs_by_position(5);
+    if(is_session_going != 1){
+
+    xQueueReceive(Sens5_xQueue, &sens5, 1);
+
+    if(sens5 > s5_max){
+    sens5 = s5_max;
+        }
+
+  if(sens5 > s5_min + 100) {
+     is_m_retracted = 0;
+     pwm1 = map(sens5, s5_max, s5_min);
+     printf("PWM 5: %d\n", pwm1);
+     set_PWM(MOTOR_5_IN_1, pwm1);
+     set_PWM(MOTOR_5_IN_2, 255 - pwm1);
+     vTaskDelay(100 / portTICK_RATE_MS);
+  }
+    if(sens5  < s5_min + 100 && is_m_retracted == 0){
+        set_PWM(MOTOR_5_IN_1, 255-saved_pwm);
+        set_PWM(MOTOR_5_IN_2, saved_pwm);
+        vTaskDelay(retract_time[4]*250 / portTICK_RATE_MS);
+        set_PWM(MOTOR_5_IN_1, 127);
+        set_PWM(MOTOR_5_IN_2, 127);
+        is_m_retracted = 1;
+  }
+    }
+    vTaskDelay(100 / portTICK_RATE_MS);
+    }
+    vTaskDelete(NULL);
+}
+
+
+
+
 
 void parse_exec_session(void *pvParameter)
-
 {   
     parse_data_from_bt(incoming_data, data_length, handle);
     vTaskDelete(NULL);
 }
+
+
+
+
 
 
 static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
@@ -58,6 +358,10 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         break;
     case ESP_SPP_CLOSE_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CLOSE_EVT");
+        set_motors_en(DRIVERS_OFF);
+        if(xTaskGetHandle("parse_exec_task") != NULL){
+            vTaskDelete(xTaskGetHandle("parse_exec_task"));
+        }
         break;
     case ESP_SPP_START_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_START_EVT");
@@ -76,11 +380,8 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
         memcpy(data_length, &param->data_ind.len, sizeof(param->data_ind.len));
         handle = param->data_ind.handle;
 
-
         //create session task
-
-
-        if(incoming_data[0] == 0x06 || incoming_data[0] == 0x07){
+        if(incoming_data[0] == pause || incoming_data[0] == stop){
             if(xTaskGetHandle("parse_exec_task") != NULL){
                 vTaskDelete(xTaskGetHandle("parse_exec_task"));
             }
@@ -89,15 +390,14 @@ static void esp_spp_cb(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
             send_ACK(handle);
             break;
         }
-
         if(xTaskGetHandle("parse_exec_task") != NULL){
-           
             vTaskDelete(xTaskGetHandle("parse_exec_task"));
         }
-
+        is_session_active = 1;
+        xQueueOverwrite(is_session_xQueue, &is_session_active);
         xTaskCreate(&parse_exec_session, "parse_exec_task", 3192, NULL, 5, parse_exec_xHandle);
-        
         break;
+
     case ESP_SPP_CONG_EVT:
         ESP_LOGI(SPP_TAG, "ESP_SPP_CONG_EVT");
         break;
@@ -262,7 +562,30 @@ void app_main(void)
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
     HW_init();
+    retract_time = calloc(5, sizeof(uint8_t));
+    forward_time = calloc(5, sizeof(uint8_t));
+    get_data_from_motor_move(retract_time, forward_time);   
+
+    is_session_xQueue = xQueueCreate( 1, sizeof( uint8_t ) );
+    xQueueOverwrite(is_session_xQueue, &is_session_active);
     
-
-
+    if(xTaskGetHandle("ADC_task") == NULL){
+        xTaskCreate(&ADC_task, "ADC_Task", 2048, NULL, 3, ADC_task_xHandle);
+    }
+    if(xTaskGetHandle("m1_sens1") == NULL && (xTaskGetHandle("parse_exec_task") == NULL)){
+        xTaskCreate(&m1_sens1, "m1_sens1", 2048, NULL, 5, m1_sens1_xHandle);
+    }
+    if(xTaskGetHandle("m2_sens2") == NULL && (xTaskGetHandle("parse_exec_task") == NULL)){
+        xTaskCreate(&m2_sens2, "m2_sens2", 2048, NULL, 5, m2_sens2_xHandle);
+    }
+    if(xTaskGetHandle("m3_sens3") == NULL && (xTaskGetHandle("parse_exec_task") == NULL)){
+        xTaskCreate(&m3_sens3, "m3_sens3", 2048, NULL, 5, m3_sens3_xHandle);
+    }
+       if(xTaskGetHandle("m4_sens4") == NULL && (xTaskGetHandle("parse_exec_task") == NULL)){
+        xTaskCreate(&m4_sens4, "m4_sens4", 2048, NULL, 5, m4_sens4_xHandle);
+    }
+       if(xTaskGetHandle("m5_sens5") == NULL && (xTaskGetHandle("parse_exec_task") == NULL)){
+        xTaskCreate(&m5_sens5, "m5_sens5", 2048, NULL, 5, m5_sens5_xHandle);
+    }
+    
 } 

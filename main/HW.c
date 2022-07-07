@@ -2,14 +2,17 @@
 
 esp_err_t HW_init()
 {
+    gpio_pad_select_gpio(BTN_GPIO);
+    gpio_set_pull_mode(BTN_GPIO, GPIO_PULLDOWN_ONLY);
+    gpio_set_direction(BTN_GPIO, GPIO_MODE_INPUT);
 
     gpio_pad_select_gpio(LED_PIN);
     gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(LED_PIN, 1);
+
     gpio_pad_select_gpio(EN_PIN);
     gpio_set_direction(EN_PIN, GPIO_MODE_OUTPUT);
     gpio_set_level(EN_PIN, DRIVERS_OFF);
-
 
 
 
@@ -30,8 +33,54 @@ esp_err_t HW_init()
     ledcSetup(MOTOR_5_IN_2, LEDC_FREQUENCY, LEDC_DUTY_RES, M5_2_PIN);
     
     set_motors_en(DRIVERS_OFF);
+
+    //check Vref
+    ESP_ERROR_CHECK(esp_adc_cal_check_efuse(ESP_ADC_CAL_VAL_EFUSE_VREF));
+    config_ADC(ADC1, CHAN_1);
+    config_ADC(ADC1, CHAN_2);
+    config_ADC(ADC2, CHAN_3);
+    config_ADC(ADC2, CHAN_4);
+    config_ADC(ADC2, CHAN_5);
+
+    config_ADC(ADC1, batt_chan);
+
+
     return 0;
 }
+
+void config_ADC(adc_unit_t unit, adc_channel_t chann){
+
+    if (unit == ADC_UNIT_1) {
+        adc1_config_width(width);
+        adc1_config_channel_atten(chann, atten);
+    } else {
+        adc2_config_channel_atten((adc2_channel_t)chann, atten);
+    }
+    //Characterize ADC
+    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(unit, atten, width, DEFAULT_VREF, adc_chars);
+    
+}
+
+uint32_t get_ADC_data(adc_unit_t unit, adc_channel_t chann){
+    
+    uint32_t adc_reading = 0;
+        //Multisampling
+        for (int i = 0; i < NO_OF_SAMPLES; i++) {
+            if (unit == ADC_UNIT_1) {
+                adc_reading += adc1_get_raw((adc1_channel_t)chann);
+            } else {
+                int raw = 0;
+                adc2_get_raw((adc2_channel_t)chann, width, &raw);
+                adc_reading += raw;
+            }
+        }
+        adc_reading = adc_reading/NO_OF_SAMPLES;
+        //Convert adc_reading to voltage in mV
+        uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
+        return voltage;
+}
+
 
 void set_motors_en(uint8_t STATE)
 {
